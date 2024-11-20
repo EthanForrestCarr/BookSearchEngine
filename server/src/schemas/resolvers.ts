@@ -3,7 +3,7 @@ import { AuthenticationError } from 'apollo-server';
 
 const resolvers = {
   Query: {
-    me: async (parent, args, context) => {
+    me: async (_parent, _args, context) => {
       if (context.user) {
         return await User.findById(context.user._id);
       }
@@ -11,7 +11,7 @@ const resolvers = {
     },
   },
   Mutation: {
-    login: async (parent, { email, password }) => {
+    login: async (_parent, { email, password }) => {
       const user = await User.findOne({ email });
       if (!user || !(await user.isCorrectPassword(password))) {
         throw new AuthenticationError('Incorrect credentials');
@@ -19,12 +19,12 @@ const resolvers = {
       const token = user.generateAuthToken();
       return { token, user };
     },
-    addUser: async (parent, args) => {
+    addUser: async (_parent, args) => {
       const user = await User.create(args);
       const token = user.generateAuthToken();
       return { token, user };
     },
-    saveBook: async (parent, args, context) => {
+    saveBook: async (_parent, args, context) => {
       if (context.user) {
         return await User.findByIdAndUpdate(
           context.user._id,
@@ -34,7 +34,7 @@ const resolvers = {
       }
       throw new AuthenticationError('Not logged in');
     },
-    removeBook: async (parent, { bookId }, context) => {
+    removeBook: async (_parent, { bookId }, context) => {
       if (context.user) {
         return await User.findByIdAndUpdate(
           context.user._id,

@@ -1,4 +1,4 @@
-import { User } from '../models/User.js';
+import User from '../models/User.js';
 import { AuthenticationError } from 'apollo-server';
 
 const resolvers = {

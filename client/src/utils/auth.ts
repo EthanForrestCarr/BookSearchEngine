@@ -1,56 +1,101 @@
-// use this to decode a token and get the user's information out of it
-import { jwtDecode } from 'jwt-decode';
+// Utility functions for handling user authentication
 
-interface UserToken {
-  name: string;
-  exp: number;
-}
+const TOKEN_KEY = 'id_token';
 
-// create a new class to instantiate for a user
-class AuthService {
-  // get user data
-  getProfile() {
-    return jwtDecode(this.getToken() || '');
+// Retrieve the token from localStorage
+export const getToken = (): string | null => {
+  try {
+    return localStorage.getItem(TOKEN_KEY);
+  } catch (error) {
+    console.error('Error retrieving token:', error);
+    return null;
+  }
+};
+
+// Save the token to localStorage
+export const saveToken = (token: string): void => {
+  if (!token) {
+    console.error('Invalid token provided.');
+    return;
   }
 
-  // check if user's logged in
-  loggedIn() {
-    // Checks if there is a saved token and it's still valid
-    const token = this.getToken();
-    return !!token && !this.isTokenExpired(token); // handwaiving here
+  try {
+    localStorage.setItem(TOKEN_KEY, token);
+  } catch (error) {
+    console.error('Error saving token:', error);
   }
+};
 
-  // check if token is expired
-  isTokenExpired(token: string) {
-    try {
-      const decoded = jwtDecode<UserToken>(token);
-      if (decoded.exp < Date.now() / 1000) {
-        return true;
-      } 
-      
-      return false;
-    } catch (err) {
-      return false;
+// Remove the token from localStorage
+export const removeToken = (): void => {
+  try {
+    localStorage.removeItem(TOKEN_KEY);
+  } catch (error) {
+    console.error('Error removing token:', error);
+  }
+};
+
+// Check if the user is logged in by verifying the token
+export const loggedIn = (): boolean => {
+  const token = getToken();
+  return token ? !isTokenExpired(token) : false;
+};
+
+// Decode the token to retrieve payload data
+export const decodeToken = (token: string): Record<string, unknown> | null => {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((char) => `%${('00' + char.charCodeAt(0).toString(16)).slice(-2)}`)
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    console.error('Error decoding token:', error);
+    return null;
+  }
+};
+
+// Check if the token is expired
+const isTokenExpired = (token: string): boolean => {
+  try {
+    const decoded = decodeToken(token);
+    if (!decoded || typeof decoded.exp !== 'number') {
+      return true;
     }
-  }
 
-  getToken() {
-    // Retrieves the user token from localStorage
-    return localStorage.getItem('id_token');
+    const currentTime = Date.now() / 1000;
+    return decoded.exp < currentTime;
+  } catch (error) {
+    console.error('Error checking token expiration:', error);
+    return true;
   }
+};
 
-  login(idToken: string) {
-    // Saves user token to localStorage
-    localStorage.setItem('id_token', idToken);
-    window.location.assign('/');
-  }
+// Log the user in by saving their token
+export const login = (token: string): void => {
+  saveToken(token);
+  window.location.assign('/');
+};
 
-  logout() {
-    // Clear user token and profile data from localStorage
-    localStorage.removeItem('id_token');
-    // this will reload the page and reset the state of the application
-    window.location.assign('/');
-  }
-}
+// Log the user out by removing their token
+export const logout = (): void => {
+  removeToken();
+  window.location.assign('/');
+};
 
-export default new AuthService();
+// Default export to maintain backward compatibility
+const Auth = {
+  getToken,
+  saveToken,
+  removeToken,
+  loggedIn,
+  decodeToken,
+  login,
+  logout,
+};
+
+export default Auth;

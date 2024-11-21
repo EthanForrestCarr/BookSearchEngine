@@ -7,6 +7,12 @@ import authMiddleware from './services/auth.js';
 import { typeDefs, resolvers } from './schemas/index.js';
 import db from './config/connection.js';
 import { MyContext } from './services/auth.js';
+import cors from 'cors';
+
+const corsOptions = {
+  origin: 'http://localhost:3000',
+  credentials: true,
+};
 
 const PORT = process.env.PORT || 3001;
 const server = new ApolloServer<MyContext>({
@@ -16,13 +22,14 @@ const server = new ApolloServer<MyContext>({
 
 const app = express();
 
+app.use(cors(corsOptions));
+
 const startApolloServer = async () => {
   await server.start();
   await db;
 
   app.use(express.urlencoded({ extended: false }));
   app.use(express.json());
-
   app.use('/graphql', expressMiddleware(server, {
     context: async ({ req }) => {
       const { user } = authMiddleware(req);

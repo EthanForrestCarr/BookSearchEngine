@@ -21,17 +21,24 @@ const SignupForm = () => {
 
   const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
+  
     try {
       const { data } = await addUser({
         variables: { ...formState },
       });
-
-      Auth.login(data.addUser.token);
+  
+      if (data?.addUser?.token) {
+        Auth.login(data.addUser.token);
+      } else {
+        throw new Error('Failed to receive a token from the server.');
+      }
     } catch (err) {
-      console.error(err);
+      if (err instanceof Error) {
+        console.error('Error while signing up:', err.message);
+      }
     }
   };
+  
 
   return (
     <div>

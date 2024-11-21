@@ -1,9 +1,10 @@
 import User from '../models/User.js';
-import { AuthenticationError } from 'apollo-server';
+import { AuthenticationError } from 'apollo-server-core';
+import { IResolvers } from '@graphql-tools/utils';
 
-const resolvers = {
+const resolvers: IResolvers = {
   Query: {
-    me: async (_parent, _args, context) => {
+    me: async (_parent: unknown, _args: unknown, context: { user: any }) => {
       if (context.user) {
         return await User.findById(context.user._id);
       }
@@ -11,7 +12,7 @@ const resolvers = {
     },
   },
   Mutation: {
-    login: async (_parent, { email, password }) => {
+    login: async (_parent: unknown, { email, password }: { email: string; password: string }) => {
       const user = await User.findOne({ email });
       if (!user || !(await user.isCorrectPassword(password))) {
         throw new AuthenticationError('Incorrect credentials');
@@ -19,12 +20,12 @@ const resolvers = {
       const token = user.generateAuthToken();
       return { token, user };
     },
-    addUser: async (_parent, args) => {
+    addUser: async (_parent: unknown, args: { username: string; email: string; password: string }) => {
       const user = await User.create(args);
       const token = user.generateAuthToken();
       return { token, user };
     },
-    saveBook: async (_parent, args, context) => {
+    saveBook: async (_parent: unknown, args: { bookId: string; title: string }, context: { user: any }) => {
       if (context.user) {
         return await User.findByIdAndUpdate(
           context.user._id,
@@ -34,7 +35,7 @@ const resolvers = {
       }
       throw new AuthenticationError('Not logged in');
     },
-    removeBook: async (_parent, { bookId }, context) => {
+    removeBook: async (_parent: unknown, { bookId }: { bookId: string }, context: { user: any }) => {
       if (context.user) {
         return await User.findByIdAndUpdate(
           context.user._id,
@@ -48,3 +49,4 @@ const resolvers = {
 };
 
 export default resolvers;
+

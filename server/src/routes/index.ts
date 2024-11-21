@@ -1,4 +1,4 @@
-import type { Request, Response } from 'express';
+/* import type { Request, Response } from 'express';
 import express from 'express';
 const router = express.Router();
 
@@ -16,3 +16,4 @@ router.use((_req: Request, res: Response) => {
 });
 
 export default router;
+ */

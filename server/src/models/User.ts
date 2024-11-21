@@ -5,6 +5,8 @@ import bcrypt from 'bcrypt';
 import bookSchema from './Book.js';
 import type { BookDocument } from './Book.js';
 
+import jwt from 'jsonwebtoken';
+
 export interface UserDocument extends Document {
   id: string;
   username: string;
@@ -12,6 +14,7 @@ export interface UserDocument extends Document {
   password: string;
   savedBooks: BookDocument[];
   isCorrectPassword(password: string): Promise<boolean>;
+  generateAuthToken(): string;
   bookCount: number;
 }
 
@@ -56,6 +59,17 @@ userSchema.pre('save', async function (next) {
 // custom method to compare and validate password for logging in
 userSchema.methods.isCorrectPassword = async function (password: string) {
   return await bcrypt.compare(password, this.password);
+};
+
+// method to generate auth token
+userSchema.methods.generateAuthToken = function () {
+  if (!process.env.JWT_SECRET_KEY) {
+    throw new Error('JWT_SECRET_KEY is not defined');
+  }
+  const token = jwt.sign({ _id: this._id, email: this.email }, process.env.JWT_SECRET_KEY, {
+    expiresIn: '1h',
+  });
+  return token;
 };
 
 // when we query a user, we'll also get another field called `bookCount` with the number of saved books we have

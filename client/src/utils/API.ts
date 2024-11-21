@@ -1,60 +1,54 @@
-import type { User } from '../models/User.js';
-import type { Book } from '../models/Book.js';
+// Utility functions for interacting with the Google Books API
+import { Book } from './localStorage'; // Assuming Book is defined in localStorage.ts
 
-// route to get logged in user's info (needs the token)
-export const getMe = (token: string) => {
-  return fetch('/api/users/me', {
-    headers: {
-      'Content-Type': 'application/json',
-      authorization: `Bearer ${token}`,
-    },
-  });
+const BASE_URL = 'https://www.googleapis.com/books/v1/volumes';
+
+// Define types for API responses
+export interface GoogleBook {
+  id: string;
+  volumeInfo: {
+    title: string;
+    authors?: string[];
+    description?: string;
+    imageLinks?: { thumbnail: string };
+    infoLink: string;
+  };
+}
+
+export interface GoogleBooksResponse {
+  items: GoogleBook[];
+  totalItems: number;
+}
+
+// Search for books using the Google Books API
+export const searchGoogleBooks = async (query: string): Promise<GoogleBooksResponse | null> => {
+  if (!query) {
+    console.error('Search query is required.');
+    return null;
+  }
+
+  try {
+    const response = await fetch(`${BASE_URL}?q=${encodeURIComponent(query)}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch books: ${response.statusText}`);
+    }
+
+    const data: GoogleBooksResponse = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching books from Google API:', error);
+    return null;
+  }
 };
 
-export const createUser = (userData: User) => {
-  return fetch('/api/users', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(userData),
-  });
-};
-
-export const loginUser = (userData: User) => {
-  return fetch('/api/users/login', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(userData),
-  });
-};
-
-// save book data for a logged in user
-export const saveBook = (bookData: Book, token: string) => {
-  return fetch('/api/users', {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(bookData),
-  });
-};
-
-// remove saved book data for a logged in user
-export const deleteBook = (bookId: string, token: string) => {
-  return fetch(`/api/users/books/${bookId}`, {
-    method: 'DELETE',
-    headers: {
-      authorization: `Bearer ${token}`,
-    },
-  });
-};
-
-// make a search to google books api
-// https://www.googleapis.com/books/v1/volumes?q=harry+potter
-export const searchGoogleBooks = (query: string) => {
-  return fetch(`https://www.googleapis.com/books/v1/volumes?q=${query}`);
+// Extract book data for easier consumption in components
+export const parseGoogleBooks = (books: GoogleBook[]): Book[] => {
+  return books.map((book) => ({
+    bookId: book.id,
+    title: book.volumeInfo.title,
+    authors: book.volumeInfo.authors || ['No author listed'],
+    description: book.volumeInfo.description || 'No description available',
+    image: book.volumeInfo.imageLinks?.thumbnail || '',
+    link: book.volumeInfo.infoLink,
+  }));
 };

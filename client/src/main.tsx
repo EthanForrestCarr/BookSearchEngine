@@ -1,28 +1,38 @@
-import ReactDOM from 'react-dom/client'
-import { createBrowserRouter, RouterProvider } from 'react-router-dom'
-import 'bootstrap/dist/css/bootstrap.min.css'
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { RouterProvider, createBrowserRouter } from 'react-router-dom';
+import { ApolloProvider, ApolloClient, InMemoryCache } from '@apollo/client';
+import App from './App';
+import SearchBooks from './pages/SearchBooks';
+import SavedBooks from './pages/SavedBooks';
+import LoginForm from './components/LoginForm';
+import SignupForm from './components/SignupForm';
 
-import App from './App.jsx'
-import SearchBooks from './pages/SearchBooks'
-import SavedBooks from './pages/SavedBooks'
+// Initialize Apollo Client
+const client = new ApolloClient({
+  uri: '/graphql',
+  cache: new InMemoryCache(),
+});
 
+// Define routes with relative paths for children
 const router = createBrowserRouter([
   {
-    path: '/',
+    path: '/*',
     element: <App />,
-    errorElement: <h1 className='display-2'>Wrong page!</h1>,
     children: [
-      {
-        index: true,
-        element: <SearchBooks />
-      }, {
-        path: '/saved',
-        element: <SavedBooks />
-      }
-    ]
-  }
-])
+      { index: true, element: <SearchBooks /> }, // Default child route
+      { path: 'saved', element: <SavedBooks /> },
+      { path: 'login', element: <LoginForm /> },
+      { path: 'signup', element: <SignupForm /> },
+    ],
+  },
+]);
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <RouterProvider router={router} />
-)
+const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
+root.render(
+  <React.StrictMode>
+    <ApolloProvider client={client}>
+      <RouterProvider router={router} />
+    </ApolloProvider>
+  </React.StrictMode>
+);

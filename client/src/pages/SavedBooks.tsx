@@ -1,77 +1,48 @@
-import React, { useState } from 'react';
-import { useMutation } from '@apollo/client';
-import { SAVE_BOOK } from '../utils/mutations';
-import { searchGoogleBooks } from '../utils/API';
+import React from 'react';
+import { useQuery, useMutation } from '@apollo/client';
+import { GET_ME } from '../utils/queries';
+import { REMOVE_BOOK } from '../utils/mutations';
 
-const SearchBooks = () => {
-  const [searchInput, setSearchInput] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [saveBook] = useMutation(SAVE_BOOK);
+const SavedBooks = () => {
+  const { loading, error, data } = useQuery(GET_ME);
+  const [removeBook] = useMutation(REMOVE_BOOK);
 
-  const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    if (!searchInput) {
-      return;
-    }
-
+  const handleRemoveBook = async (bookId: string) => {
     try {
-      const response = await searchGoogleBooks(searchInput);
-      if (!response.ok) {
-        throw new Error('Something went wrong!');
-      }
-
-      const { items } = await response.json();
-      const bookData = items.map((book: any) => ({
-        bookId: book.id,
-        authors: book.volumeInfo.authors || ['No author listed'],
-        title: book.volumeInfo.title,
-        description: book.volumeInfo.description || 'No description available',
-        image: book.volumeInfo.imageLinks?.thumbnail || '',
-        link: book.volumeInfo.infoLink,
-      }));
-
-      setSearchResults(bookData);
-      setSearchInput('');
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleSaveBook = async (book: any) => {
-    try {
-      await saveBook({
-        variables: { ...book },
+      await removeBook({
+        variables: { bookId },
       });
     } catch (err) {
       console.error(err);
     }
   };
 
+  if (loading) return <p>Loading...</p>;
+  if (error) return <p>Error: {error.message}</p>;
+
+  const savedBooks = data?.me.savedBooks || [];
+
   return (
     <div>
-      <form onSubmit={handleFormSubmit}>
-        <input
-          type="text"
-          placeholder="Search for a book"
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-        />
-        <button type="submit">Search</button>
-      </form>
-
-      <div>
-        {searchResults.map((book) => (
-          <div key={book.bookId}>
-            <h3>{book.title}</h3>
-            <p>{book.authors.join(', ')}</p>
-            <p>{book.description}</p>
-            <button onClick={() => handleSaveBook(book)}>Save Book</button>
-          </div>
-        ))}
-      </div>
+      <h2>Saved Books</h2>
+      {savedBooks.length ? (
+        <div>
+          {savedBooks.map((book: any) => (
+            <div key={book.bookId}>
+              <h3>{book.title}</h3>
+              <p>{book.authors.join(', ')}</p>
+              <p>{book.description}</p>
+              <button onClick={() => handleRemoveBook(book.bookId)}>
+                Remove Book
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p>You have no saved books.</p>
+      )}
     </div>
   );
 };
 
-export default SearchBooks;
+export default SavedBooks;

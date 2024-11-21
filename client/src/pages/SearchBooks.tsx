@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useMutation } from '@apollo/client';
 import { SAVE_BOOK } from '../utils/mutations';
-import { searchGoogleBooks } from '../utils/API';
+import { searchGoogleBooks, parseGoogleBooks } from '../utils/API';
+import { Book } from '../utils/localStorage';
 
 const SearchBooks = () => {
   const [searchInput, setSearchInput] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
+  const [searchResults, setSearchResults] = useState<Book[]>([]);
   const [saveBook] = useMutation(SAVE_BOOK);
 
   const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -17,20 +18,11 @@ const SearchBooks = () => {
 
     try {
       const response = await searchGoogleBooks(searchInput);
-      if (!response.ok) {
-        throw new Error('Something went wrong!');
+      if (!response || !response.items) {
+        throw new Error('No books found!');
       }
 
-      const { items } = await response.json();
-      const bookData = items.map((book: any) => ({
-        bookId: book.id,
-        authors: book.volumeInfo.authors || ['No author listed'],
-        title: book.volumeInfo.title,
-        description: book.volumeInfo.description || 'No description available',
-        image: book.volumeInfo.imageLinks?.thumbnail || '',
-        link: book.volumeInfo.infoLink,
-      }));
-
+      const bookData = parseGoogleBooks(response.items);
       setSearchResults(bookData);
       setSearchInput('');
     } catch (err) {
@@ -38,7 +30,7 @@ const SearchBooks = () => {
     }
   };
 
-  const handleSaveBook = async (book: any) => {
+  const handleSaveBook = async (book: Book) => {
     try {
       await saveBook({
         variables: { ...book },
@@ -64,7 +56,7 @@ const SearchBooks = () => {
         {searchResults.map((book) => (
           <div key={book.bookId}>
             <h3>{book.title}</h3>
-            <p>{book.authors.join(', ')}</p>
+            <p>{book.authors?.join(', ')}</p>
             <p>{book.description}</p>
             <button onClick={() => handleSaveBook(book)}>Save Book</button>
           </div>
